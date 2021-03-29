@@ -16,6 +16,7 @@ body {
   margin: 0;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  background-color: #f4f4fb !important;
 }
 
 code {
@@ -25,4 +26,10 @@ code {
 
 * {
   font-family: Poppins;
+}
+
+.__btn {
+  text-transform: none !important;
+  font-size: 12px !important;
+  border-radius: 10px !important;
 }

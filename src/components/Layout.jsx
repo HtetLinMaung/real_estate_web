@@ -1,4 +1,4 @@
-import React, { Fragment, useContext } from "react";
+import React, { Fragment, useContext, useEffect } from "react";
 import clsx from "clsx";
 import { makeStyles, useTheme } from "@material-ui/core/styles";
 import Drawer from "@material-ui/core/Drawer";
@@ -16,6 +16,7 @@ import ListItem from "@material-ui/core/ListItem";
 import { Collapse } from "@material-ui/core";
 import { rootContext } from "../providers/RootProvider";
 import { ExpandLess, ExpandMore } from "@material-ui/icons";
+import { useHistory } from "react-router-dom";
 
 const drawerWidth = 240;
 
@@ -90,10 +91,71 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 export default function Layout({ children }) {
+  const history = useHistory();
   const [state, dispatch] = useContext(rootContext);
   const classes = useStyles();
   const theme = useTheme();
   const [open, setOpen] = React.useState(false);
+
+  useEffect(() => {
+    dispatch({ type: "INIT_MENUS", payload: [] });
+  }, [dispatch]);
+
+  const lookRecursive = (id, menus) => {
+    const children = menus.filter((m) => m.parentId === id);
+
+    for (const child of children) {
+      if (child.isParent) {
+        child.children = lookRecursive(child._id, menus);
+      }
+    }
+    return children.map((menu) => (
+      <Fragment key={menu._id}>
+        <ListItem
+          className={classes.nested}
+          button
+          onClick={() => {
+            dispatch({ type: "TOGGLE_OPEN", payload: menu._id });
+            setOpen(true);
+            if (!menu.isParent) {
+              history.push(menu.url);
+            }
+          }}
+        >
+          <i className={clsx(classes.menuIcon, menu.icon)}></i>
+          <div style={{ flex: 1 }}>{menu.menuName}</div>
+          {menu.isParent ? menu.open ? <ExpandLess /> : <ExpandMore /> : null}
+        </ListItem>
+        {menu.isParent ? (
+          <Collapse in={menu.open} timeout="auto" unmountOnExit>
+            <List className={classes.nested}>{menu.children}</List>
+          </Collapse>
+        ) : null}
+      </Fragment>
+    ));
+  };
+
+  const generateMenuUI = () =>
+    state.menus
+      .filter((m) => m.isParent && m.parentId === "-")
+      .map((menu) => (
+        <Fragment key={menu._id}>
+          <ListItem
+            button
+            onClick={() => {
+              dispatch({ type: "TOGGLE_OPEN", payload: menu._id });
+              setOpen(true);
+            }}
+          >
+            <i className={clsx(classes.menuIcon, menu.icon)}></i>
+            <div style={{ flex: 1 }}>{menu.menuName}</div>
+            {menu.open ? <ExpandLess /> : <ExpandMore />}
+          </ListItem>
+          <Collapse in={menu.open} timeout="auto" unmountOnExit>
+            <List>{lookRecursive(menu._id, state.menus)}</List>
+          </Collapse>
+        </Fragment>
+      ));
 
   const handleDrawerOpen = () => {
     setOpen(true);
@@ -101,6 +163,10 @@ export default function Layout({ children }) {
 
   const handleDrawerClose = () => {
     setOpen(false);
+    dispatch({
+      type: "SET_STATE",
+      payload: { menus: state.menus.map((m) => ({ ...m, open: false })) },
+    });
   };
 
   return (
@@ -152,60 +218,8 @@ export default function Layout({ children }) {
           </IconButton>
         </div>
         <Divider />
-        {/* <List>
-          {["Inbox", "Starred", "Send email", "Drafts"].map((text, index) => (
-            <ListItem button key={text}>
-              <ListItemIcon>
-                {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-              </ListItemIcon>
-              <ListItemText primary={text} />
-            </ListItem>
-          ))}
-        </List>
-        <Divider />
-        <List>
-          {["All mail", "Trash", "Spam"].map((text, index) => (
-            <ListItem button key={text}>
-              <ListItemIcon>
-                {index % 2 === 0 ? <InboxIcon /> : <MailIcon />}
-              </ListItemIcon>
-              <ListItemText primary={text} />
-            </ListItem>
-          ))}
-        </List> */}
 
-        <List>
-          {state.menus.map((menu) => (
-            <Fragment key={menu._id}>
-              <ListItem
-                button
-                onClick={() =>
-                  dispatch({ type: "TOGGLE_OPEN", payload: menu._id })
-                }
-              >
-                <i className={clsx(classes.menuIcon, menu.icon)}></i>
-                <div style={{ flex: 1 }}>{menu.menuName}</div>
-                {menu.isParent ? (
-                  menu.open ? (
-                    <ExpandLess />
-                  ) : (
-                    <ExpandMore />
-                  )
-                ) : null}
-              </ListItem>
-              {menu.isParent ? (
-                <Collapse in={menu.open} timeout="auto" unmountOnExit>
-                  <List>
-                    <ListItem button className={classes.nested}>
-                      <i className={clsx(classes.menuIcon, menu.icon)}></i>
-                      <div style={{ flex: 1 }}>{menu.menuName}</div>
-                    </ListItem>
-                  </List>
-                </Collapse>
-              ) : null}
-            </Fragment>
-          ))}
-        </List>
+        <List>{generateMenuUI()}</List>
       </Drawer>
       <main className={classes.content}>
         <div className={classes.toolbar} />

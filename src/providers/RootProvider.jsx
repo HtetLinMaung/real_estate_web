@@ -4,7 +4,7 @@ import { menus } from "../data/menus";
 import theme from "../configs/theme";
 
 const initState = {
-  menus,
+  menus: [],
 };
 
 const reducer = (state, action) => {
@@ -15,6 +15,15 @@ const reducer = (state, action) => {
         menus: state.menus.map((menu) => ({
           ...menu,
           open: menu._id === action.payload ? !menu.open : menu.open,
+        })),
+      };
+    case "INIT_MENUS":
+      return {
+        ...state,
+        menus: [...action.payload, ...menus].map((m) => ({
+          ...m,
+          children: [],
+          open: false,
         })),
       };
     case "SET_STATE":

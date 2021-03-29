@@ -4,10 +4,10 @@ import Poppins from "../assets/fonts/Poppins-Regular.ttf";
 export default createMuiTheme({
   palette: {
     primary: {
-      main: "#0079BF",
+      main: "#fff",
     },
     secondary: {
-      main: "#68727C",
+      main: "#4659E4",
     },
     error: {
       main: "#FE635A",
